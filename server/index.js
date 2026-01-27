@@ -238,7 +238,7 @@ router.post('/admin/login', async (req, res) => {
 });
 
 // CRUD Produtos
-router.post('/produtos', upload.single('image'), async (req, res) => {
+router.post('/produtos', async (req, res) => {
     const { name, brand, price, originalPrice, tag, rating, sku, description, category_id, modo_uso, mostrar_modo_uso, tem_variacoes, variations } = req.body;
     // Em serverless sem storage externo, aceitamos apenas URL direta.
     const image = req.body.image;
@@ -273,7 +273,7 @@ router.post('/produtos', upload.single('image'), async (req, res) => {
     }
 });
 
-router.put('/produtos/:id', upload.single('image'), async (req, res) => {
+router.put('/produtos/:id', async (req, res) => {
     const { name, brand, price, originalPrice, tag, rating, sku, description, category_id, variations, modo_uso, mostrar_modo_uso, tem_variacoes } = req.body;
     const { id } = req.params;
     let image = req.body.image;

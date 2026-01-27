@@ -54,21 +54,15 @@ export const saveProduct = async (product: any) => {
     const method = product.id ? 'PUT' : 'POST';
     const url = product.id ? `${API_URL}/api/produtos/${product.id}` : `${API_URL}/api/produtos`;
 
-    const formData = new FormData();
-    Object.keys(product).forEach(key => {
-        if (product[key] !== undefined && product[key] !== null) {
-            if (key === 'variations') {
-                formData.append(key, JSON.stringify(product[key]));
-            } else {
-                formData.append(key, product[key]);
-            }
-        }
-    });
-
+    // Para Base64 puro, JSON é mais seguro e simples que FormData (que esbarra em limites do Multer)
     const response = await fetch(url, {
         method,
-        body: formData
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(product)
     });
+
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || errorData.details || 'Erro ao salvar produto');
