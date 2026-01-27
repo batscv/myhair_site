@@ -316,6 +316,7 @@ router.get('/debug-db', async (req, res) => {
     try {
         const { rows } = await db.query('SELECT NOW()');
         res.json({ message: 'Conexão com Banco OK!', time: rows[0].now, env_db: process.env.DATABASE_URL ? 'Definido' : 'Indefinido' });
+    } catch (error) {
         res.status(500).json({ error: 'Falha na conexão com banco', details: error.message });
     }
 });
