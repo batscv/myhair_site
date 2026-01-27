@@ -94,8 +94,9 @@ export default function AdminProducts() {
             setImageFile(null);
             setImagePreview(null);
             refetch();
-        } catch (e) {
-            toast.error("Erro ao salvar produto");
+        } catch (e: any) {
+            console.error(e);
+            toast.error(e.message || "Erro ao salvar produto");
         }
     };
 

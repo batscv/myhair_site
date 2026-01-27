@@ -64,8 +64,14 @@ export const saveProduct = async (product: any) => {
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.details || 'Erro ao salvar produto');
+        const text = await response.text();
+        try {
+            const errorData = JSON.parse(text);
+            throw new Error(errorData.error || errorData.details || 'Erro ao salvar produto');
+        } catch (e) {
+            // Se não for JSON (ex: erro HTML do Netlify ou 413 Payload Too Large)
+            throw new Error(`Erro ${response.status}: ${response.statusText || 'Falha na requisição'} - Verifique o tamanho da imagem.`);
+        }
     }
     return response.json();
 };

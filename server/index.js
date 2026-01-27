@@ -269,7 +269,7 @@ router.post('/produtos', async (req, res) => {
         res.json({ id: newId, message: 'Produto criado com sucesso' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Erro ao criar produto' });
+        res.status(500).json({ error: 'Erro ao criar produto', details: error.message, code: error.code });
     }
 });
 
@@ -300,7 +300,7 @@ router.put('/produtos/:id', async (req, res) => {
         res.json({ message: 'Produto atualizado com sucesso' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Erro ao atualizar produto' });
+        res.status(500).json({ error: 'Erro ao atualizar produto', details: error.message, code: error.code });
     }
 });
 
