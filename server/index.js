@@ -291,8 +291,33 @@ router.post('/produtos', async (req, res) => {
             }
         }
 
+        // Falback: Se erro for "column does not exist" (code 42703), tenta insert simples (schema antigo)
+        if (error.code === '42703') {
+            console.log("Detectado erro de coluna inexistente (Schema antigo?). Tentando insert simplificado...");
+            try {
+                const { rows } = await db.query(
+                    `INSERT INTO produtos (nome, marca, preco, preco_original, imagem, tag, rating, sku, descricao, categoria_id, estoque) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+                    [name, brand, priceVal, originalPriceVal, image, tag, ratingVal, sku, description, categoryVal, stockVal]
+                );
+                return res.json({ id: rows[0].id, message: 'Produto criado (Schema antigo detectado - algumas info ignoradas)' });
+            } catch (retryError) {
+                return res.status(500).json({ error: 'Erro no insert simplificado', details: retryError.message });
+            }
+        }
+
         console.error(error);
         res.status(500).json({ error: 'Erro ao criar produto', details: error.message, code: error.code });
+    }
+});
+
+// Rota de Debug para testar conexão com banco
+router.get('/debug-db', async (req, res) => {
+    try {
+        const { rows } = await db.query('SELECT NOW()');
+        res.json({ message: 'Conexão com Banco OK!', time: rows[0].now, env_db: process.env.DATABASE_URL ? 'Definido' : 'Indefinido' });
+    } catch (error) {
+        res.status(500).json({ error: 'Falha na conexão com banco', details: error.message });
     }
 });
 
