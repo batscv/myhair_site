@@ -1074,8 +1074,9 @@ router.get('/admin/metrics', async (req, res) => {
 app.use('/api', router);
 
 // Export for serverless
-module.exports = app;
-module.exports.handler = serverless(app);
+// Export for serverless
+const handler = serverless(app);
+module.exports = { app, handler };
 
 // Local dev support
 if (require.main === module) {

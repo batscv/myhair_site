@@ -1,3 +1,3 @@
-const api = require('../../server/index');
+const { handler } = require('../../server/index');
 
-module.exports.handler = api.handler;
+module.exports.handler = handler;
