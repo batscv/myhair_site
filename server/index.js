@@ -316,8 +316,120 @@ router.get('/debug-db', async (req, res) => {
     try {
         const { rows } = await db.query('SELECT NOW()');
         res.json({ message: 'Conexão com Banco OK!', time: rows[0].now, env_db: process.env.DATABASE_URL ? 'Definido' : 'Indefinido' });
-    } catch (error) {
         res.status(500).json({ error: 'Falha na conexão com banco', details: error.message });
+    }
+});
+
+// Rota de Setup Automático (Criação de Tabelas)
+router.get('/setup-db', async (req, res) => {
+    try {
+        // SQL completo do schema (convertido para string única)
+        const sql = `
+            CREATE TABLE IF NOT EXISTS categorias (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(50) NOT NULL UNIQUE,
+                descricao TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS produtos (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(150) NOT NULL,
+                marca VARCHAR(100),
+                preco DECIMAL(10, 2) NOT NULL,
+                preco_original DECIMAL(10, 2),
+                imagem TEXT,
+                tag VARCHAR(50),
+                rating INT DEFAULT 5,
+                review_count INT DEFAULT 0,
+                categoria_id INT,
+                sku VARCHAR(50) UNIQUE,
+                descricao TEXT,
+                estoque INT DEFAULT 0,
+                modo_uso TEXT,
+                mostrar_modo_uso BOOLEAN DEFAULT FALSE,
+                tem_variacoes BOOLEAN DEFAULT FALSE,
+                FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS produtos_variacoes (
+                id SERIAL PRIMARY KEY,
+                produto_id INT NOT NULL,
+                nome VARCHAR(100) NOT NULL,
+                estoque INT DEFAULT 0,
+                FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(100) NOT NULL,
+                email VARCHAR(100) NOT NULL UNIQUE,
+                senha VARCHAR(255) NOT NULL,
+                tipo VARCHAR(20) DEFAULT 'cliente',
+                telefone VARCHAR(20),
+                morada TEXT,
+                data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS servicos (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(100) NOT NULL,
+                descricao TEXT,
+                preco DECIMAL(10, 2) NOT NULL,
+                duracao_minutos INT,
+                categoria_id INT,
+                FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS banners (
+                id SERIAL PRIMARY KEY,
+                imagem_url VARCHAR(255) NOT NULL,
+                imagem_mobile_url VARCHAR(255),
+                titulo VARCHAR(100),
+                subtitulo VARCHAR(200),
+                link VARCHAR(255),
+                tag VARCHAR(50),
+                ordem INT DEFAULT 0,
+                mostrar_texto BOOLEAN DEFAULT TRUE,
+                ativo BOOLEAN DEFAULT TRUE,
+                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+             CREATE TABLE IF NOT EXISTS marcas (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(100) NOT NULL,
+                imagem_url VARCHAR(255) NOT NULL,
+                ordem INT DEFAULT 0,
+                ativo BOOLEAN DEFAULT TRUE,
+                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            INSERT INTO categorias (nome, descricao) VALUES 
+            ('Cabelos', 'Produtos para tratamento e cuidado capilar'),
+            ('Skincare', 'Cuidados com a pele facial e corporal'),
+            ('Perfumes', 'Fragrâncias masculinas e femininas'),
+            ('Maquiagem', 'Produtos de beleza e maquiagem')
+            ON CONFLICT (nome) DO NOTHING;
+
+            INSERT INTO usuarios (nome, email, senha, tipo) VALUES 
+            ('Administrador', 'admin@beautyhub.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
+            ON CONFLICT (email) DO NOTHING;
+        `;
+
+        await db.query(sql);
+
+        // Tenta aplicar correções de colunas em tabelas que já existiam
+        try {
+            await db.query('ALTER TABLE produtos ADD COLUMN IF NOT EXISTS modo_uso TEXT');
+            await db.query('ALTER TABLE produtos ADD COLUMN IF NOT EXISTS mostrar_modo_uso BOOLEAN DEFAULT FALSE');
+            await db.query('ALTER TABLE produtos ADD COLUMN IF NOT EXISTS tem_variacoes BOOLEAN DEFAULT FALSE');
+            await db.query('ALTER TABLE produtos ALTER COLUMN imagem TYPE TEXT');
+        } catch (e) {
+            console.log("Erro não crítico ao alterar colunas (talvez já existam):", e.message);
+        }
+
+        res.json({ message: 'Banco de dados configurado com sucesso! Tente usar o painel agora.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao configurar banco', details: error.message });
     }
 });
 
