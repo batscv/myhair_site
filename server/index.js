@@ -314,10 +314,21 @@ router.post('/produtos', async (req, res) => {
 // Rota de Debug para testar conexão com banco
 router.get('/debug-db', async (req, res) => {
     try {
+        // Tenta uma query simples. Se db.js estiver sem URL, vai lançar erro controlado.
         const { rows } = await db.query('SELECT NOW()');
-        res.json({ message: 'Conexão com Banco OK!', time: rows[0].now, env_db: process.env.DATABASE_URL ? 'Definido' : 'Indefinido' });
+        res.json({
+            status: 'OK',
+            message: 'Conexão com Banco OK!',
+            server_time: rows[0].now,
+            db_configured: process.env.DATABASE_URL ? 'SIM (Variável Definida)' : 'NAO (Variável Ausente)'
+        });
     } catch (error) {
-        res.status(500).json({ error: 'Falha na conexão com banco', details: error.message });
+        res.status(200).json({
+            status: 'ERROR',
+            error: 'Falha na conexão com banco',
+            details: error.message,
+            db_configured: process.env.DATABASE_URL ? 'SIM (Variável Definida)' : 'NAO (Variável Ausente) - Verifique o Netlify'
+        });
     }
 });
 
