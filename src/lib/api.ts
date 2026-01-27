@@ -69,8 +69,9 @@ export const saveProduct = async (product: any) => {
             const errorData = JSON.parse(text);
             throw new Error(errorData.error || errorData.details || 'Erro ao salvar produto');
         } catch (e) {
-            // Se não for JSON (ex: erro HTML do Netlify ou 413 Payload Too Large)
-            throw new Error(`Erro ${response.status}: ${response.statusText || 'Falha na requisição'} - Verifique o tamanho da imagem.`);
+            // Se não for JSON, mostra o texto cru (limitado a 100 caracteres para caber no toast)
+            const errorPreview = text.substring(0, 100);
+            throw new Error(`Erro Servidor (${response.status}): ${errorPreview}...`);
         }
     }
     return response.json();
