@@ -56,17 +56,46 @@ export default function AdminProducts() {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Limite de tamanho client-side (ex: 2MB)
-            if (file.size > 2 * 1024 * 1024) {
-                toast.error("A imagem deve ter no máximo 2MB.");
+            // Se não for imagem, ignora
+            if (!file.type.startsWith('image/')) {
+                toast.error("Por favor selecione um arquivo de imagem.");
                 return;
             }
 
             const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result as string;
-                setImageFile(null); // Backend expects string in body, mostly managed via hidden input or state
-                setImagePreview(base64String);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Redimensionar para max 800px (largura ou altura)
+                    const maxSize = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height *= maxSize / width;
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width *= maxSize / height;
+                            height = maxSize;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+
+                    // Converter para JPEG com qualidade 0.7 (reduz drasticamente o tamanho)
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+                    setImageFile(null);
+                    setImagePreview(dataUrl);
+                };
+                img.src = event.target?.result as string;
             };
             reader.readAsDataURL(file);
         }
