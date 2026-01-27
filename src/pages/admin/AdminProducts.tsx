@@ -53,6 +53,26 @@ export default function AdminProducts() {
         }
     };
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Limite de tamanho client-side (ex: 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                toast.error("A imagem deve ter no máximo 2MB.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                setImageFile(null); // Backend expects string in body, mostly managed via hidden input or state
+                setImagePreview(base64String);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -211,7 +231,7 @@ export default function AdminProducts() {
                             </div>
 
                             <div className="md:col-span-2 space-y-2">
-                                <label className="text-xs font-bold uppercase text-muted-foreground">URL da Imagem do Produto</label>
+                                <label className="text-xs font-bold uppercase text-muted-foreground">Fotografia do Produto</label>
                                 <div className="flex items-center gap-4 p-4 bg-secondary/30 rounded-xl border border-dashed border-border">
                                     <div className="w-24 h-24 rounded-lg bg-secondary border border-border overflow-hidden flex-shrink-0">
                                         {(imagePreview) ? (
@@ -224,13 +244,17 @@ export default function AdminProducts() {
                                     </div>
                                     <div className="flex-1">
                                         <input
+                                            type="hidden"
                                             name="image"
-                                            placeholder="https://exemplo.com/imagem.png"
-                                            defaultValue={editingProduct?.image || ""}
-                                            onChange={(e) => setImagePreview(e.target.value)}
-                                            className="w-full p-2.5 bg-secondary border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20"
+                                            value={imagePreview || ""}
                                         />
-                                        <p className="text-[10px] text-muted-foreground mt-2">Cole o link da imagem (hospedada em Imgur, GitHub, etc).</p>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                            className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground mt-2">A imagem será salva no banco. Tamanho máx recomendado: 1MB.</p>
                                     </div>
                                 </div>
                             </div>

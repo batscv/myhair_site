@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS produtos (
     marca VARCHAR(100),
     preco DECIMAL(10, 2) NOT NULL,
     preco_original DECIMAL(10, 2),
-    imagem VARCHAR(255),
+    imagem TEXT,
     tag VARCHAR(50),
     rating INT DEFAULT 5,
     review_count INT DEFAULT 0,
