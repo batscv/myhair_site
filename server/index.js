@@ -239,35 +239,58 @@ router.post('/admin/login', async (req, res) => {
 
 // CRUD Produtos
 router.post('/produtos', async (req, res) => {
-    const { name, brand, price, originalPrice, tag, rating, sku, description, category_id, modo_uso, mostrar_modo_uso, tem_variacoes, variations } = req.body;
-    // Em serverless sem storage externo, aceitamos apenas URL direta.
-    const image = req.body.image;
+    // Sanitização rigorosa de tipos
+    const priceVal = price && !isNaN(parseFloat(price)) ? parseFloat(price) : 0;
+    const originalPriceVal = originalPrice && !isNaN(parseFloat(originalPrice)) ? parseFloat(originalPrice) : null;
+    const ratingVal = rating && !isNaN(parseInt(rating)) ? parseInt(rating) : 5;
+    const categoryVal = category_id && !isNaN(parseInt(category_id)) ? parseInt(category_id) : null;
+    const stockVal = req.body.estoque && !isNaN(parseInt(req.body.estoque)) ? parseInt(req.body.estoque) : 0;
+
+    // Tratamento de booleans que podem vir como strings "true"/"false" ou 1/0
+    const showUsageVal = mostrar_modo_uso === true || mostrar_modo_uso === 'true' || mostrar_modo_uso === 1 || mostrar_modo_uso === '1';
+    const hasVariationsVal = tem_variacoes === true || tem_variacoes === 'true' || tem_variacoes === 1 || tem_variacoes === '1';
 
     let parsedVariations = [];
     try {
-        parsedVariations = typeof variations === 'string' ? JSON.parse(variations) : variations;
-    } catch (e) {
-        // Ignorar erro de parse se não for json valido
-    }
+        parsedVariations = typeof variations === 'string' ? JSON.parse(variations) : (variations || []);
+    } catch (e) { parsedVariations = []; }
+
+    const insertProduct = async () => {
+        return await db.query(
+            `INSERT INTO produtos (nome, marca, preco, preco_original, imagem, tag, rating, sku, descricao, categoria_id, modo_uso, mostrar_modo_uso, tem_variacoes, estoque) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
+            [name || 'Produto Sem Nome', brand || '', priceVal, originalPriceVal, image, tag || '', ratingVal, sku || '', description || '', categoryVal, modo_uso || '', showUsageVal, hasVariationsVal, stockVal]
+        );
+    };
 
     try {
-        const { rows } = await db.query(
-            `INSERT INTO produtos (nome, marca, preco, preco_original, imagem, tag, rating, sku, descricao, categoria_id, modo_uso, mostrar_modo_uso, tem_variacoes) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
-            [name, brand, parseFloat(price), originalPrice ? parseFloat(originalPrice) : null, image, tag, parseInt(rating) || 5, sku, description, parseInt(category_id), modo_uso, mostrar_modo_uso === 'true' || mostrar_modo_uso === true, tem_variacoes === 'true' || tem_variacoes === true]
-        );
+        const { rows } = await insertProduct();
         const newId = rows[0].id;
 
         if (Array.isArray(parsedVariations) && parsedVariations.length > 0) {
-            // Postgres doesn't support bulk insert with '?' like mysql easily without UNNEST or constructing query string.
-            // Loop is simpler for now.
             for (const v of parsedVariations) {
-                await db.query('INSERT INTO produtos_variacoes (produto_id, nome, estoque) VALUES ($1, $2, $3)', [newId, v.nome, v.estoque]);
+                await db.query('INSERT INTO produtos_variacoes (produto_id, nome, estoque) VALUES ($1, $2, $3)', [newId, v.nome, parseInt(v.estoque) || 0]);
             }
         }
 
         res.json({ id: newId, message: 'Produto criado com sucesso' });
     } catch (error) {
+        // Auto-fix: Se erro for "value too long" (code 22001), tenta alterar a coluna imagem para TEXT e reexecuta
+        if (error.code === '22001' && image && image.length > 255) {
+            console.log("Detectado erro de truncamento. Tentando corrigir schema da coluna imagem...");
+            try {
+                await db.query('ALTER TABLE produtos ALTER COLUMN imagem TYPE TEXT');
+                console.log("Schema corrigido. Tentando inserir novamente...");
+
+                const { rows } = await insertProduct();
+                // Sucesso na segunda tentativa
+                return res.json({ id: rows[0].id, message: 'Produto criado com sucesso (Schema corrigido)' });
+            } catch (retryError) {
+                console.error('Falha na retentativa:', retryError);
+                return res.status(500).json({ error: 'Erro ao criar produto mesmo após correção', details: retryError.message, code: retryError.code });
+            }
+        }
+
         console.error(error);
         res.status(500).json({ error: 'Erro ao criar produto', details: error.message, code: error.code });
     }
