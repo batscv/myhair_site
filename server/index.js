@@ -239,8 +239,8 @@ router.post('/admin/login', async (req, res) => {
 // CRUD Produtos
 router.post('/produtos', upload.single('image'), async (req, res) => {
     const { name, brand, price, originalPrice, tag, rating, sku, description, category_id, modo_uso, mostrar_modo_uso, tem_variacoes, variations } = req.body;
-    // Em serverless, o path da imagem deve ser tratado (ex: retornar URL de storage externo). Como fallback, retornamos local.
-    const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
+    // Em serverless sem storage externo, aceitamos apenas URL direta.
+    const image = req.body.image;
 
     let parsedVariations = [];
     try {
@@ -276,9 +276,7 @@ router.put('/produtos/:id', upload.single('image'), async (req, res) => {
     const { name, brand, price, originalPrice, tag, rating, sku, description, category_id, variations, modo_uso, mostrar_modo_uso, tem_variacoes } = req.body;
     const { id } = req.params;
     let image = req.body.image;
-    if (req.file) {
-        image = `/uploads/${req.file.filename}`;
-    }
+    // Removed req.file logic for serverless
 
     let parsedVariations = [];
     try {

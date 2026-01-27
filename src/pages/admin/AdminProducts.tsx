@@ -53,13 +53,6 @@ export default function AdminProducts() {
         }
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -70,7 +63,6 @@ export default function AdminProducts() {
             await saveProduct({
                 ...editingProduct,
                 ...data,
-                image: imageFile || editingProduct?.image,
                 variations: data.tem_variacoes === 'true' || data.tem_variacoes === '1' ? variations : [],
                 modo_uso: data.modo_uso,
                 mostrar_modo_uso: data.mostrar_modo_uso === 'true' || data.mostrar_modo_uso === '1',
@@ -219,7 +211,7 @@ export default function AdminProducts() {
                             </div>
 
                             <div className="md:col-span-2 space-y-2">
-                                <label className="text-xs font-bold uppercase text-muted-foreground">Fotografia do Produto</label>
+                                <label className="text-xs font-bold uppercase text-muted-foreground">URL da Imagem do Produto</label>
                                 <div className="flex items-center gap-4 p-4 bg-secondary/30 rounded-xl border border-dashed border-border">
                                     <div className="w-24 h-24 rounded-lg bg-secondary border border-border overflow-hidden flex-shrink-0">
                                         {(imagePreview) ? (
@@ -232,12 +224,13 @@ export default function AdminProducts() {
                                     </div>
                                     <div className="flex-1">
                                         <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageChange}
-                                            className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                                            name="image"
+                                            placeholder="https://exemplo.com/imagem.png"
+                                            defaultValue={editingProduct?.image || ""}
+                                            onChange={(e) => setImagePreview(e.target.value)}
+                                            className="w-full p-2.5 bg-secondary border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20"
                                         />
-                                        <p className="text-[10px] text-muted-foreground mt-2">Formatos aceitos: JPG, PNG. Tamanho máx: 5MB.</p>
+                                        <p className="text-[10px] text-muted-foreground mt-2">Cole o link da imagem (hospedada em Imgur, GitHub, etc).</p>
                                     </div>
                                 </div>
                             </div>
