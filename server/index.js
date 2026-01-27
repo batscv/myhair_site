@@ -1084,6 +1084,16 @@ router.get('/admin/metrics', async (req, res) => {
 
 app.use('/api', router);
 
+// Servir arquivos estáticos do React (Frontend)
+const path = require('path');
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
+
+// Fallback para React Router (SPA) - Qualquer rota não-API vai para index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+});
+
 // Export for serverless
 // Export for serverless
 const handler = serverless(app);
