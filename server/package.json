@@ -12,15 +12,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "cloudinary": "^1.41.3",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "multer": "^2.0.2",
-    "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.16.1",
     "nodemon": "^3.1.11",
-    "pg": "^8.17.2",
-    "serverless-http": "^4.0.0"
+    "pg": "^8.17.2"
   }
 }
