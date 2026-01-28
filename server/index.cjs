@@ -5,28 +5,27 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const serverless = require('serverless-http');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configuração do Multer para Uploads
-// Nota: Em ambiente serverless (Netlify), uploads de arquivos locais (disco) não persistem.
-// O ideal seria usar S3 ou Cloudinary. Para este exemplo, manteremos assim, mas cientes de que
-// no Netlify os arquivos upados desaparecerão após a execução da função.
-const uploadsDir = path.join('/tmp', 'uploads'); // Usar /tmp no Netlify (readonly root)
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// Configuração do Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadsDir);
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'beauty-hub', // Nome da pasta no Cloudinary
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+        // transformation: [{ width: 500, height: 500, crop: 'limit' }] // Opcional
     },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
 });
 
 const upload = multer({ storage: storage });
@@ -34,8 +33,8 @@ const upload = multer({ storage: storage });
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-// Servir arquivos estáticos do /tmp em dev/prod (embora efêmero em serverless)
-app.use('/uploads', express.static(uploadsDir));
+// Não servimos mais uploads locais
+// app.use('/uploads', express.static(uploadsDir));
 
 // Rotas precisam começar com /.netlify/functions/api se rodando via netlify-cli localmente ou prod
 // Mas podemos usar um router base para facilitar.
@@ -517,8 +516,8 @@ router.delete('/categorias/:id', async (req, res) => {
 router.post('/banners', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mobile_image', maxCount: 1 }]), async (req, res) => {
     const { id, titulo, subtitulo, link, tag, ordem, mostrar_texto } = req.body;
 
-    let desktop_url = req.files?.['image'] ? `/uploads/${req.files['image'][0].filename}` : req.body.imagem_url;
-    let mobile_url = req.files?.['mobile_image'] ? `/uploads/${req.files['mobile_image'][0].filename}` : req.body.imagem_mobile_url;
+    let desktop_url = req.files?.['image'] ? req.files['image'][0].path : req.body.imagem_url;
+    let mobile_url = req.files?.['mobile_image'] ? req.files['mobile_image'][0].path : req.body.imagem_mobile_url;
 
     try {
         if (id && id !== 'undefined' && id !== 'null') {
@@ -569,7 +568,7 @@ router.get('/marcas', async (req, res) => {
 
 router.post('/marcas', upload.single('image'), async (req, res) => {
     const { nome, ordem } = req.body;
-    const final_url = req.file ? `/uploads/${req.file.filename}` : null;
+    const final_url = req.file ? req.file.path : null;
 
     if (!final_url) {
         return res.status(400).json({ error: 'A imagem da marca é obrigatória' });
