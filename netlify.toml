@@ -6,12 +6,29 @@
   external_node_modules = ["pg"]
   node_bundler = "esbuild"
 
+# Redirecionar chamadas de API para a função serverless
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
 
+# SPA fallback - todas as outras rotas vão para index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Headers de segurança
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache para assets estáticos
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
